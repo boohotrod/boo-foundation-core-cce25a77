@@ -61,7 +61,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             return (
               <Link
                 key={to}
-                to={to}
+                to={to as "/dashboard"}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm ${
                   active
                     ? "bg-primary text-primary-foreground"
