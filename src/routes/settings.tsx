@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -77,7 +77,6 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const hydrated = useRef(false);
   const [statusLines, setStatusLines] = useState<string[]>([]);
   const [timedOut, setTimedOut] = useState(false);
