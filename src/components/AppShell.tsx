@@ -8,20 +8,30 @@ import {
   History,
   LogOut,
   Shield,
+  Rocket,
 } from "lucide-react";
-import { api, clearAuthSession } from "@/lib/api";
+import { api, clearAuthSession, getAuthSession } from "@/lib/api";
 
-const NAV = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  superadmin?: boolean;
+};
+
+const NAV: NavItem[] = [
   { to: "/dashboard", label: "Vezérlőpult", icon: LayoutDashboard },
   { to: "/plugins", label: "Bővítmények", icon: Puzzle },
   { to: "/system-health", label: "Rendszerállapot", icon: Activity },
+  { to: "/deployment", label: "Deployment Center", icon: Rocket, superadmin: true },
   { to: "/settings", label: "Beállítások", icon: SettingsIcon },
   { to: "/rollback-points", label: "Visszaállítási pontok", icon: History },
-] as const;
+];
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const role = getAuthSession()?.user?.role;
 
   const logout = async () => {
     try {
@@ -44,12 +54,14 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
-          {NAV.map(({ to, label, icon: Icon }) => {
+          {NAV.map((item) => {
+            if (item.superadmin && role !== "superadmin") return null;
+            const { to, label, icon: Icon } = item;
             const active = pathname === to;
             return (
               <Link
                 key={to}
-                to={to}
+                to={to as "/dashboard"}
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm ${
                   active
                     ? "bg-primary text-primary-foreground"

@@ -16,6 +16,7 @@ import { Route as RollbackPointsRouteImport } from './routes/rollback-points'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PluginsRouteImport } from './routes/plugins'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DeploymentRouteImport } from './routes/deployment'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -54,6 +55,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeploymentRoute = DeploymentRouteImport.update({
+  id: '/deployment',
+  path: '/deployment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -68,6 +74,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/deployment': typeof DeploymentRoute
   '/login': typeof LoginRoute
   '/plugins': typeof PluginsRoute
   '/register': typeof RegisterRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/deployment': typeof DeploymentRoute
   '/login': typeof LoginRoute
   '/plugins': typeof PluginsRoute
   '/register': typeof RegisterRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/deployment': typeof DeploymentRoute
   '/login': typeof LoginRoute
   '/plugins': typeof PluginsRoute
   '/register': typeof RegisterRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/deployment'
     | '/login'
     | '/plugins'
     | '/register'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/deployment'
     | '/login'
     | '/plugins'
     | '/register'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/deployment'
     | '/login'
     | '/plugins'
     | '/register'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  DeploymentRoute: typeof DeploymentRoute
   LoginRoute: typeof LoginRoute
   PluginsRoute: typeof PluginsRoute
   RegisterRoute: typeof RegisterRoute
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deployment': {
+      id: '/deployment'
+      path: '/deployment'
+      fullPath: '/deployment'
+      preLoaderRoute: typeof DeploymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  DeploymentRoute: DeploymentRoute,
   LoginRoute: LoginRoute,
   PluginsRoute: PluginsRoute,
   RegisterRoute: RegisterRoute,
