@@ -12,19 +12,21 @@ import {
 } from "lucide-react";
 import { api, clearAuthSession, getAuthSession } from "@/lib/api";
 
-const NAV = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  superadmin?: boolean;
+};
+
+const NAV: NavItem[] = [
   { to: "/dashboard", label: "Vezérlőpult", icon: LayoutDashboard },
   { to: "/plugins", label: "Bővítmények", icon: Puzzle },
   { to: "/system-health", label: "Rendszerállapot", icon: Activity },
   { to: "/deployment", label: "Deployment Center", icon: Rocket, superadmin: true },
   { to: "/settings", label: "Beállítások", icon: SettingsIcon },
   { to: "/rollback-points", label: "Visszaállítási pontok", icon: History },
-] as const satisfies ReadonlyArray<{
-  to: string;
-  label: string;
-  icon: typeof LayoutDashboard;
-  superadmin?: boolean;
-}>;
+];
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
