@@ -19,7 +19,12 @@ const NAV = [
   { to: "/deployment", label: "Deployment Center", icon: Rocket, superadmin: true },
   { to: "/settings", label: "Beállítások", icon: SettingsIcon },
   { to: "/rollback-points", label: "Visszaállítási pontok", icon: History },
-] as const;
+] as const satisfies ReadonlyArray<{
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  superadmin?: boolean;
+}>;
 
 export function AppShell({ children, title }: { children: ReactNode; title: string }) {
   const navigate = useNavigate();
