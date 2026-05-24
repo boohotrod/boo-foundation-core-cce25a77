@@ -5,6 +5,12 @@ import os from "os";
 import { query, ping, migrateAndSeed } from "./db.js";
 import { runBackup, getBackupStatus, startScheduler } from "./backup.js";
 import { signToken, verifyPassword, verifyToken } from "./auth.js";
+import {
+  runAllowed,
+  listLogs,
+  listAllowedCommands,
+  getRepoConfig,
+} from "./deployment.js";
 
 const PORT = Number(process.env.PORT || 4000);
 const APP_VERSION = "0.2.0";
@@ -257,6 +263,100 @@ app.get("/api/rollback-points", async (_req, res, next) => {
   } catch (e) {
     next(e);
   }
+});
+
+// ── Deployment Center (SuperAdmin only) ────────────────────────────────────
+function requireSuperAdmin(req, res, next) {
+  if (req.user?.role !== "superadmin") {
+    return res.status(403).json({ error: "SuperAdmin jogosultság szükséges." });
+  }
+  next();
+}
+
+async function safeRun(actionId, user) {
+  return runAllowed(actionId, { user });
+}
+
+app.get("/api/deployment/status", requireSuperAdmin, async (req, res) => {
+  const repo = getRepoConfig();
+  const [head, branch, remote, status] = await Promise.all([
+    safeRun("git.rev-parse", req.user),
+    safeRun("git.branch", req.user),
+    safeRun("git.log-remote", req.user),
+    safeRun("git.status", req.user),
+  ]);
+  res.json({
+    app: {
+      version: APP_VERSION,
+      build: APP_BUILD,
+      environment: APP_ENV,
+      uptime: (Date.now() - startedAt) / 1000,
+      timestamp: new Date().toISOString(),
+    },
+    repo: {
+      url: repo.repoUrl,
+      path: repo.repoPath,
+      configured: Boolean(repo.repoUrl),
+      localCommit: head.ok ? head.output.trim() : null,
+      branch: branch.ok ? branch.output.trim() : null,
+      remoteLatest: remote.ok ? remote.output.trim() : null,
+      workingTree: status.ok ? status.output.trim() : null,
+      checks: { head, branch, remote, status },
+    },
+  });
+});
+
+app.get("/api/deployment/logs", requireSuperAdmin, async (_req, res, next) => {
+  try {
+    res.json(await listLogs(25));
+  } catch (e) { next(e); }
+});
+
+app.get("/api/deployment/allowed", requireSuperAdmin, (_req, res) => {
+  res.json(listAllowedCommands());
+});
+
+app.post("/api/deployment/check-update", requireSuperAdmin, async (req, res) => {
+  const fetched = await safeRun("git.fetch", req.user);
+  const [head, remote] = await Promise.all([
+    safeRun("git.rev-parse", req.user),
+    safeRun("git.log-remote", req.user),
+  ]);
+  const localHash = head.ok ? head.output.trim() : null;
+  const remoteFirstWord = remote.ok ? remote.output.trim().split(/\s+/)[0] : null;
+  const updateAvailable =
+    !!(localHash && remoteFirstWord) && !localHash.startsWith(remoteFirstWord);
+  res.json({
+    ok: fetched.ok && head.ok && remote.ok,
+    updateAvailable,
+    local: localHash,
+    remote: remote.ok ? remote.output.trim() : null,
+    fetch: fetched,
+  });
+});
+
+app.post("/api/deployment/backup", requireSuperAdmin, async (req, res) => {
+  res.json(await safeRun("backup", req.user));
+});
+
+app.post("/api/deployment/pull", requireSuperAdmin, async (req, res) => {
+  res.json(await safeRun("git.pull", req.user));
+});
+
+app.post("/api/deployment/rebuild-frontend", requireSuperAdmin, async (req, res) => {
+  res.json(await safeRun("docker.frontend", req.user));
+});
+
+app.post("/api/deployment/rebuild-backend", requireSuperAdmin, async (req, res) => {
+  res.json(await safeRun("docker.backend", req.user));
+});
+
+app.post("/api/deployment/restart", requireSuperAdmin, async (req, res) => {
+  res.json(await safeRun("docker.up", req.user));
+});
+
+app.post("/api/deployment/healthcheck", requireSuperAdmin, async (req, res) => {
+  res.json(await safeRun("docker.ps", req.user));
 });
 
 // ── Error handler ───────────────────────────────────────────────────────────
