@@ -12,6 +12,13 @@ const APP_BUILD = "real-auth";
 const APP_ENV = process.env.NODE_ENV || "production";
 const startedAt = Date.now();
 
+const DEFAULT_SETTINGS = [
+  { key: "site_name", value: "BBS Core" },
+  { key: "timezone", value: "UTC" },
+  { key: "log_level", value: "info" },
+  { key: "retain_rollbacks", value: "10" },
+];
+
 // ── Structured logger ──────────────────────────────────────────────────────
 function log(level, event, extra = {}) {
   const entry = {
@@ -176,10 +183,39 @@ app.post("/api/plugins/toggle", async (req, res, next) => {
 });
 
 // ── Settings ────────────────────────────────────────────────────────────────
+async function listSettings() {
+  const rows = await query("SELECT `key`, value FROM app_settings ORDER BY `key`");
+  return rows.length > 0 ? rows : DEFAULT_SETTINGS;
+}
+
+async function saveSettingsPayload(payload) {
+  if (!Array.isArray(payload)) {
+    const err = new Error("Settings payload must be an array.");
+    err.status = 400;
+    throw err;
+  }
+  for (const item of payload) {
+    if (!item || typeof item.key !== "string" || typeof item.value !== "string") {
+      const err = new Error("Each setting requires {key, value}.");
+      err.status = 400;
+      throw err;
+    }
+    if (item.key.length < 1 || item.key.length > 128 || item.value.length > 4096) {
+      const err = new Error("Setting too large or invalid.");
+      err.status = 400;
+      throw err;
+    }
+    await query(
+      "INSERT INTO app_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
+      [item.key, item.value]
+    );
+  }
+  return listSettings();
+}
+
 app.get("/api/settings", async (_req, res, next) => {
   try {
-    const rows = await query("SELECT `key`, value FROM app_settings ORDER BY `key`");
-    res.json(rows);
+    res.json(await listSettings());
   } catch (e) {
     next(e);
   }
@@ -187,22 +223,18 @@ app.get("/api/settings", async (_req, res, next) => {
 
 app.post("/api/settings", async (req, res, next) => {
   try {
-    const payload = Array.isArray(req.body) ? req.body : [];
-    for (const item of payload) {
-      if (!item || typeof item.key !== "string" || typeof item.value !== "string") {
-        return res.status(400).json({ error: "Each setting requires {key, value}." });
-      }
-      if (item.key.length > 128 || item.value.length > 4096) {
-        return res.status(400).json({ error: "Setting too large." });
-      }
-      await query(
-        "INSERT INTO app_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
-        [item.key, item.value]
-      );
-    }
-    const rows = await query("SELECT `key`, value FROM app_settings ORDER BY `key`");
-    res.json(rows);
+    res.json(await saveSettingsPayload(req.body));
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
+    next(e);
+  }
+});
+
+app.put("/api/settings", async (req, res, next) => {
+  try {
+    res.json(await saveSettingsPayload(req.body));
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     next(e);
   }
 });
